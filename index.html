@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Internet Diet Planner Pro</title>
+    <style>
+        /* --- DESIGN VARIABLES --- */
+        :root {
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --font-serif: "Georgia", "Times New Roman", serif;
+            --font-mono: "SF Mono", "Monaco", "Courier New", monospace;
+            
+            --radius: 12px;
+            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+
+            /* Default Typography */
+            --current-font: var(--font-sans);
+            --spacing-unit: 1rem;
+        }
+
+        /* --- THEMES --- */
+        [data-theme="light"] { --bg: #fafafa; --surface: #ffffff; --text: #171717; --text-muted: #737373; --border: #e5e5e5; --primary: #171717; --primary-fg: #fff; --accent-bg: #f4f4f5; }
+        [data-theme="dark"] { --bg: #0a0a0a; --surface: #171717; --text: #ededed; --text-muted: #a1a1aa; --border: #262626; --primary: #ededed; --primary-fg: #000; --accent-bg: #262626; }
+        [data-theme="sepia"] { --bg: #fdf6e3; --surface: #eee8d5; --text: #433422; --text-muted: #93a1a1; --border: #d3cbb7; --primary: #b58900; --primary-fg: #fff; --accent-bg: #e0d8c3; }
+        [data-theme="ocean"] { --bg: #f0f9ff; --surface: #ffffff; --text: #0c4a6e; --text-muted: #64748b; --border: #bae6fd; --primary: #0284c7; --primary-fg: #fff; --accent-bg: #e0f2fe; }
+        [data-theme="forest"] { --bg: #f2fcf5; --surface: #ffffff; --text: #14532d; --text-muted: #718096; --border: #bbf7d0; --primary: #16a34a; --primary-fg: #fff; --accent-bg: #dcfce7; }
+        [data-theme="slate"] { --bg: #64748b; --surface: #475569; --text: #f8fafc; --text-muted: #cbd5e1; --border: #94a3b8; --primary: #f1f5f9; --primary-fg: #0f172a; --accent-bg: #334155; }
+        [data-theme="midnight"] { --bg: #020617; --surface: #0f172a; --text: #e2e8f0; --text-muted: #94a3b8; --border: #1e293b; --primary: #38bdf8; --primary-fg: #000; --accent-bg: #1e293b; }
+        [data-theme="paper"] { --bg: #fdfbf7; --surface: #f7f5eb; --text: #2c2c2c; --text-muted: #666; --border: #e6e2d3; --primary: #2c2c2c; --primary-fg: #fff; --accent-bg: #ebe7db; }
+
+        /* Density Settings */
+        [data-density="compact"] { --spacing-unit: 0.75rem; font-size: 14px; }
+        [data-density="cozy"] { --spacing-unit: 1.25rem; font-size: 16px; }
+
+        /* --- RESET & BASE --- */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: var(--current-font);
+            line-height: 1.6;
+            transition: background-color 0.3s, color 0.3s;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- LAYOUT GRID --- */
+        .app-layout {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            min-height: 100vh;
+        }
+
+        /* --- SIDEBAR NAV --- */
+        .sidebar {
+            padding: 2rem 1rem;
+            border-right: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            background: var(--bg);
+        }
+
+        .logo {
+            font-weight: 700;
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            padding: 0.75rem 1rem;
+            text-align: left;
+            cursor: pointer;
+            border-radius: var(--radius);
+            font-family: inherit;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .nav-btn:hover { background: var(--accent-bg); color: var(--text); }
+        .nav-btn.active { background: var(--surface); color: var(--primary); font-weight: 700; box-shadow: var(--shadow-sm); }
+
+        /* --- MAIN CONTENT AREA --- */
+        .main-content {
+            padding: 2rem;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .view-section { display: none; animation: fadeIn 0.4s ease; }
+        .view-section.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        h1 { margin-bottom: 0.5rem; }
+        .subtitle { color: var(--text-muted); margin-bottom: 2rem; }
+        
+        /* --- COMPONENTS --- */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: var(--spacing-unit);
+            margin-bottom: var(--spacing-unit);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Inputs */
+        input, select, textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            border-radius: 6px;
+            font-family: inherit;
+            margin-bottom: 0.5rem;
+        }
+        input:focus { outline: 2px solid var(--primary); border-color: transparent; }
+
+        /* Buttons */
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            transition: var(--transition);
+        }
+        .btn-primary { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-danger { color: #ef4444; border-color: #fecaca; background: #fef2f2; }
+        .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.85rem; }
+
+        /* Lists */
+        .item-list { list-style: none; }
+        .item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface);
+        }
+        .item-row:first-child { border-top-left-radius: var(--radius); border-top-right-radius: var(--radius); }
+        .item-row:last-child { border-bottom: none; border-bottom-left-radius: var(--radius); border-bottom-right-radius: var(--radius); }
+        
+        /* Tags & Badges */
+        .tag {
+            display: inline-block;
+            padding: 0.2em 0.6em;
+            font-size: 0.75em;
+            font-weight: 600;
+            border-radius: 4px;
+            background: var(--accent-bg);
+            color: var(--text-muted);
+            margin-left: 0.5rem;
+        }
+
+        /* Day Selector */
+        .day-selector { display: flex; gap: 0.25rem; margin-bottom: 0.5rem; flex-wrap: wrap;}
+        .day-check { display: none; }
+        .day-label {
+            padding: 0.4rem 0.6rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            user-select: none;
+        }
+        .day-check:checked + .day-label {
+            background: var(--primary);
+            color: var(--primary-fg);
+            border-color: var(--primary);
+        }
+
+        /* --- DASHBOARD / TRACKER --- */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card { text-align: center; padding: 1.5rem; }
+        .stat-val { font-size: 2.5rem; font-weight: 700; color: var(--primary); }
+        .stat-label { color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; }
+
+        .urge-log-item { border-left: 3px solid #f59e0b; }
+        .timestamp { font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 0.25rem; }
+
+        /* --- HELP / ACCORDION --- */
+        .accordion details {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 0.5rem;
+            overflow: hidden;
+        }
+        .accordion summary {
+            padding: 1rem;
+            cursor: pointer;
+            font-weight: 600;
+            list-style: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .accordion summary::after { content: '+'; font-size: 1.2rem; }
+        .accordion details[open] summary::after { content: '−'; }
+        .accordion p { padding: 1rem; border-top: 1px solid var(--border); color: var(--text-muted); }
+
+        /* --- FOOTER --- */
+        .mobile-footer { display: none; }
+
+        /* --- RESPONSIVE --- */
+        @media (max-width: 768px) {
+            .app-layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; height: 100vh; }
+            .sidebar { 
+                display: none; /* Hidden on mobile in favor of bottom nav */
+            }
+            .main-content { padding: 1rem; padding-bottom: 80px; }
+            
+            /* Bottom Nav for Mobile */
+            .mobile-footer {
+                display: flex;
+                position: fixed;
+                bottom: 0; left: 0; right: 0;
+                background: var(--surface);
+                border-top: 1px solid var(--border);
+                justify-content: space-around;
+                padding: 0.75rem;
+                z-index: 100;
+            }
+            .mob-nav-btn {
+                background: none; border: none; font-size: 1.5rem; color: var(--text-muted);
+            }
+            .mob-nav-btn.active { color: var(--primary); }
+        }
+
+        /* --- PRINT STYLES --- */
+        @media print {
+            .sidebar, .mobile-footer, .input-area, .btn, .controls-area, #view-settings, #view-track, #view-help { display: none !important; }
+            .app-layout { display: block; }
+            .main-content { padding: 0; }
+            body, .card { background: white; color: black; border: none; box-shadow: none; }
+            .item-row { border-bottom: 1px solid #ccc; }
+            h1::after { content: " - Printed Plan"; font-size: 1rem; font-weight: normal; }
+        }
+    </style>
+</head>
+<body data-theme="light" data-density="cozy">
+
+    <div class="app-layout">
+        <!-- Desktop Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <span>🥗</span> Diet Planner
+            </div>
+            <nav class="nav-links">
+                <button class="nav-btn active" onclick="switchTab('plan')">The Plan</button>
+                <button class="nav-btn" onclick="switchTab('track')">Tracker & Urges</button>
+                <button class="nav-btn" onclick="switchTab('guide')">User Guide</button>
+                <button class="nav-btn" onclick="switchTab('settings')">Settings</button>
+            </nav>
+            <div style="margin-top: auto; padding-top: 2rem; font-size: 0.8rem; color: var(--text-muted);">
+                Made with ❤️ by Aliriyaj007
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            
+            <!-- VIEW: PLAN -->
+            <section id="view-plan" class="view-section active">
+                <h1>Internet Diet Plan</h1>
+                <p class="subtitle">Design your boundaries. Define your menu.</p>
+
+                <!-- Allowed Sites -->
+                <div class="card">
+                    <h3>1. Allowed Content (The Menu)</h3>
+                    <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:1rem;">What websites add value to your life?</p>
+                    
+                    <div class="input-area" style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:1rem;">
+                        <input type="text" id="siteName" placeholder="Site Name (e.g. Wikipedia)" style="flex:2;">
+                        <input type="text" id="siteCat" placeholder="Category" style="flex:1;">
+                        <button class="btn btn-primary" onclick="addSite()">Add</button>
+                    </div>
+
+                    <ul id="siteList" class="item-list">
+                        <!-- JS Injected -->
+                    </ul>
+                </div>
+
+                <!-- Time Windows -->
+                <div class="card">
+                    <h3>2. Consumption Windows</h3>
+                    <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:1rem;">When is browsing allowed?</p>
+                    
+                    <div class="input-area" style="background:var(--bg); padding:1rem; border-radius:var(--radius); margin-bottom:1rem;">
+                        <input type="text" id="winLabel" placeholder="Context (e.g. Sunday Morning Reading)">
+                        <div style="display:flex; gap:0.5rem; margin-bottom:0.5rem;">
+                            <input type="time" id="winStart"> <span style="align-self:center">to</span> <input type="time" id="winEnd">
+                        </div>
+                        <div class="day-selector">
+                            <label><input type="checkbox" class="day-check" value="Mon"><span class="day-label">M</span></label>
+                            <label><input type="checkbox" class="day-check" value="Tue"><span class="day-label">T</span></label>
+                            <label><input type="checkbox" class="day-check" value="Wed"><span class="day-label">W</span></label>
+                            <label><input type="checkbox" class="day-check" value="Thu"><span class="day-label">T</span></label>
+                            <label><input type="checkbox" class="day-check" value="Fri"><span class="day-label">F</span></label>
+                            <label><input type="checkbox" class="day-check" value="Sat"><span class="day-label">S</span></label>
+                            <label><input type="checkbox" class="day-check" value="Sun"><span class="day-label">S</span></label>
+                        </div>
+                        <button class="btn btn-primary" style="width:100%" onclick="addWindow()">Add Window</button>
+                    </div>
+
+                    <ul id="windowList" class="item-list">
+                        <!-- JS Injected -->
+                    </ul>
+                </div>
+
+                <!-- Intent -->
+                <div class="card">
+                    <h3>3. Philosophy of Use</h3>
+                    <textarea id="intentTxt" rows="5" placeholder="I use the internet because..." oninput="saveData()"></textarea>
+                </div>
+            </section>
+
+            <!-- VIEW: TRACKER -->
+            <section id="view-track" class="view-section">
+                <h1>Daily Tracker</h1>
+                <p class="subtitle">Monitor your impulses and build a streak.</p>
+
+                <!-- Stats -->
+                <div class="stats-grid">
+                    <div class="card stat-card">
+                        <div class="stat-val" id="streakVal">0</div>
+                        <div class="stat-label">Day Streak</div>
+                    </div>
+                    <div class="card stat-card">
+                        <div class="stat-val" id="urgeVal">0</div>
+                        <div class="stat-label">Urges Surfed</div>
+                    </div>
+                </div>
+
+                <!-- Daily Check -->
+                <div class="card">
+                    <h3>Today's Accountability</h3>
+                    <p style="margin-bottom:1rem;">Did you stick to the diet yesterday?</p>
+                    <div style="display:flex; gap:1rem;">
+                        <button class="btn btn-primary" onclick="updateStreak(true)">Yes, I did!</button>
+                        <button class="btn" onclick="updateStreak(false)">No, I slipped.</button>
+                    </div>
+                    <p id="streakMsg" style="margin-top:0.5rem; font-size:0.9rem; color:var(--primary); font-weight:600;"></p>
+                </div>
+
+                <!-- Urge Surfing -->
+                <div class="card">
+                    <h3>🏄 Urge Log (Surfing)</h3>
+                    <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:1rem;">
+                        Feeling an impulse to browse? Don't block it—log it. Write it down, wait 5 minutes, and see if the urge passes.
+                    </p>
+                    <div style="display:flex; gap:0.5rem;">
+                        <input type="text" id="urgeInput" placeholder="I want to check...">
+                        <button class="btn btn-primary" onclick="logUrge()">Log It</button>
+                    </div>
+                    <ul id="urgeList" class="item-list" style="margin-top:1rem;"></ul>
+                    <button class="btn btn-sm" style="margin-top:1rem;" onclick="clearUrges()">Clear History</button>
+                </div>
+            </section>
+
+            <!-- VIEW: GUIDE -->
+            <section id="view-guide" class="view-section">
+                <h1>User Guide</h1>
+                <p class="subtitle">How to use this tool effectively.</p>
+                
+                <div class="accordion">
+                    <details open>
+                        <summary>Philosophy: Diet vs Detox</summary>
+                        <p>This isn't a detox (temporary). It's a diet (permanent lifestyle). Just as you wouldn't eat junk food all day, you shouldn't consume junk info all day. Define what is "nutritious" for your mind.</p>
+                    </details>
+                    <details>
+                        <summary>How to use the Planner</summary>
+                        <p>1. <strong>Add Sites:</strong> List tools you need (Email, Banking, Learning). <br>2. <strong>Set Windows:</strong> Don't browse vaguely. Browse at 7 PM for 30 mins.<br>3. <strong>Print:</strong> Use the print button in settings to stick this on your wall.</p>
+                    </details>
+                    <details>
+                        <summary>How to use Urge Surfing</summary>
+                        <p>When you feel the itch to check social media, open this app instead. Go to the "Tracker" tab and type what you wanted to do. Often, the act of typing it out kills the impulse.</p>
+                    </details>
+                </div>
+            </section>
+
+            <!-- VIEW: SETTINGS -->
+            <section id="view-settings" class="view-section">
+                <h1>Settings</h1>
+                <p class="subtitle">Customize your environment.</p>
+
+                <div class="card">
+                    <h3>Visual Customization</h3>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-top:1rem;">
+                        <div>
+                            <label style="font-size:0.85rem; font-weight:600;">Color Theme</label>
+                            <select id="themeSelect" onchange="changeTheme()">
+                                <option value="light">Light</option>
+                                <option value="dark">Dark</option>
+                                <option value="sepia">Sepia</option>
+                                <option value="ocean">Ocean</option>
+                                <option value="forest">Forest</option>
+                                <option value="slate">Slate</option>
+                                <option value="midnight">Midnight</option>
+                                <option value="paper">Paper</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size:0.85rem; font-weight:600;">Font Style</label>
+                            <select id="fontSelect" onchange="changeFont()">
+                                <option value="sans">Modern Sans</option>
+                                <option value="serif">Classic Serif</option>
+                                <option value="mono">Code Monospace</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size:0.85rem; font-weight:600;">Interface Density</label>
+                            <select id="densitySelect" onchange="changeDensity()">
+                                <option value="cozy">Cozy (Comfortable)</option>
+                                <option value="compact">Compact (Information Dense)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Data Management</h3>
+                    <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:1rem;">All data is stored locally in your browser.</p>
+                    
+                    <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                        <button class="btn" onclick="exportData()">⬇ Export JSON</button>
+                        <button class="btn" onclick="document.getElementById('fileInput').click()">⬆ Import JSON</button>
+                        <button class="btn" onclick="window.print()">🖨 Print Plan</button>
+                        <input type="file" id="fileInput" style="display:none" accept=".json" onchange="importData(this)">
+                    </div>
+                    
+                    <div style="margin-top:2rem; border-top:1px solid var(--border); padding-top:1rem;">
+                        <button class="btn btn-danger btn-sm" onclick="wipeData()">Reset Everything</button>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+        
+        <!-- Mobile Bottom Nav -->
+        <nav class="mobile-footer">
+            <button class="mob-nav-btn active" onclick="switchTab('plan')">📝</button>
+            <button class="mob-nav-btn" onclick="switchTab('track')">📈</button>
+            <button class="mob-nav-btn" onclick="switchTab('guide')">❓</button>
+            <button class="mob-nav-btn" onclick="switchTab('settings')">⚙️</button>
+        </nav>
+    </div>
+
+    <script>
+        /**
+         * INTERNET DIET PLANNER PRO LOGIC
+         * Zero dependencies. LocalStorage driven.
+         */
+
+        const KEY = 'internet_diet_pro_v1';
+        
+        // Default State
+        let state = {
+            settings: { theme: 'light', font: 'sans', density: 'cozy' },
+            sites: [],
+            windows: [],
+            intent: '',
+            tracker: {
+                streak: 0,
+                lastCheckDate: null, // "YYYY-MM-DD"
+                urges: [] // { text, date }
+            }
+        };
+
+        // --- INIT ---
+        function init() {
+            const saved = localStorage.getItem(KEY);
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    state = { ...state, ...parsed }; // Merge to ensure new fields exist
+                } catch(e) { console.error("Corrupt data"); }
+            }
+
+            // Apply Settings
+            applyVisuals();
+            
+            // Populate Inputs
+            document.getElementById('intentTxt').value = state.intent || '';
+            
+            // Render Lists
+            renderSites();
+            renderWindows();
+            renderUrges();
+            updateStatsUI();
+        }
+
+        // --- CORE ---
+        function saveData() {
+            state.intent = document.getElementById('intentTxt').value;
+            localStorage.setItem(KEY, JSON.stringify(state));
+        }
+
+        function generateId() { return Math.random().toString(36).substr(2, 9); }
+
+        function switchTab(tabId) {
+            // Update UI visibility
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(`view-${tabId}`).classList.add('active');
+            
+            // Update Nav States
+            document.querySelectorAll('.nav-btn, .mob-nav-btn').forEach(btn => btn.classList.remove('active'));
+            
+            // Map simple ID to index for nav highlighting is complex, so simpler visual reset:
+            // Just basic visual feedback for now relies on onclick classes which is tricky with 2 navs.
+            // Let's simple re-query based on onclick attr.
+            const desktopBtn = document.querySelector(`.nav-btn[onclick="switchTab('${tabId}')"]`);
+            const mobBtn = document.querySelector(`.mob-nav-btn[onclick="switchTab('${tabId}')"]`);
+            if(desktopBtn) desktopBtn.classList.add('active');
+            if(mobBtn) mobBtn.classList.add('active');
+        }
+
+        // --- SETTINGS ---
+        function applyVisuals() {
+            document.body.setAttribute('data-theme', state.settings.theme);
+            document.body.setAttribute('data-density', state.settings.density);
+            
+            // Font Logic
+            let fontVar = 'var(--font-sans)';
+            if(state.settings.font === 'serif') fontVar = 'var(--font-serif)';
+            if(state.settings.font === 'mono') fontVar = 'var(--font-mono)';
+            document.documentElement.style.setProperty('--current-font', fontVar);
+
+            // Set Select Values
+            document.getElementById('themeSelect').value = state.settings.theme;
+            document.getElementById('fontSelect').value = state.settings.font;
+            document.getElementById('densitySelect').value = state.settings.density;
+        }
+
+        function changeTheme() { state.settings.theme = document.getElementById('themeSelect').value; applyVisuals(); saveData(); }
+        function changeFont() { state.settings.font = document.getElementById('fontSelect').value; applyVisuals(); saveData(); }
+        function changeDensity() { state.settings.density = document.getElementById('densitySelect').value; applyVisuals(); saveData(); }
+
+        // --- SITES ---
+        function addSite() {
+            const name = document.getElementById('siteName').value.trim();
+            const cat = document.getElementById('siteCat').value.trim();
+            if(!name) return;
+            state.sites.push({ id: generateId(), name, cat: cat || 'General' });
+            document.getElementById('siteName').value = '';
+            document.getElementById('siteCat').value = '';
+            saveData(); renderSites();
+        }
+
+        function deleteSite(id) { state.sites = state.sites.filter(s => s.id !== id); saveData(); renderSites(); }
+
+        function renderSites() {
+            const list = document.getElementById('siteList');
+            list.innerHTML = state.sites.map(s => `
+                <li class="item-row">
+                    <div>
+                        <strong>${escapeHtml(s.name)}</strong>
+                        <span class="tag">${escapeHtml(s.cat)}</span>
+                    </div>
+                    <button class="btn btn-sm btn-danger" onclick="deleteSite('${s.id}')">×</button>
+                </li>
+            `).join('') || '<li class="item-row" style="color:var(--text-muted)">No sites added yet.</li>';
+        }
+
+        // --- WINDOWS ---
+        function addWindow() {
+            const label = document.getElementById('winLabel').value.trim();
+            const start = document.getElementById('winStart').value;
+            const end = document.getElementById('winEnd').value;
+            
+            // Get Days
+            const days = Array.from(document.querySelectorAll('.day-check:checked')).map(cb => cb.value);
+
+            if(!label) { alert("Name required"); return; }
+
+            state.windows.push({ id: generateId(), label, start, end, days });
+            
+            // Reset inputs
+            document.getElementById('winLabel').value = '';
+            document.querySelectorAll('.day-check').forEach(cb => cb.checked = false);
+            saveData(); renderWindows();
+        }
+
+        function deleteWindow(id) { state.windows = state.windows.filter(w => w.id !== id); saveData(); renderWindows(); }
+
+        function renderWindows() {
+            const list = document.getElementById('windowList');
+            list.innerHTML = state.windows.map(w => {
+                const timeStr = (w.start && w.end) ? `${w.start} - ${w.end}` : 'Flexible';
+                const dayStr = w.days.length > 0 ? w.days.join(', ') : 'Everyday';
+                return `
+                <li class="item-row">
+                    <div>
+                        <strong>${escapeHtml(w.label)}</strong>
+                        <div style="font-size:0.85rem; color:var(--text-muted)">${timeStr} • <span style="color:var(--primary)">${dayStr}</span></div>
+                    </div>
+                    <button class="btn btn-sm btn-danger" onclick="deleteWindow('${w.id}')">×</button>
+                </li>
+            `}).join('') || '<li class="item-row" style="color:var(--text-muted)">No time rules set.</li>';
+        }
+
+        // --- TRACKER & URGES ---
+        function logUrge() {
+            const txt = document.getElementById('urgeInput').value.trim();
+            if(!txt) return;
+            state.tracker.urges.unshift({ id: generateId(), text: txt, date: new Date().toLocaleString() });
+            document.getElementById('urgeInput').value = '';
+            saveData(); renderUrges(); updateStatsUI();
+        }
+
+        function clearUrges() {
+            if(confirm("Clear urge history?")) { state.tracker.urges = []; saveData(); renderUrges(); updateStatsUI(); }
+        }
+
+        function renderUrges() {
+            const list = document.getElementById('urgeList');
+            list.innerHTML = state.tracker.urges.map(u => `
+                <li class="item-row urge-log-item">
+                    <div>
+                        ${escapeHtml(u.text)}
+                        <span class="timestamp">${u.date}</span>
+                    </div>
+                </li>
+            `).join('') || '<li class="item-row" style="color:var(--text-muted)">No urges logged. Keep it up!</li>';
+        }
+
+        function updateStreak(success) {
+            const today = new Date().toISOString().split('T')[0];
+            const msg = document.getElementById('streakMsg');
+            
+            if (state.tracker.lastCheckDate === today) {
+                msg.textContent = "You already checked in today.";
+                return;
+            }
+
+            if(success) {
+                state.tracker.streak++;
+                msg.textContent = "Streak incremented! Great job.";
+            } else {
+                state.tracker.streak = 0;
+                msg.textContent = "Streak reset. Tomorrow is a new day.";
+            }
+            
+            state.tracker.lastCheckDate = today;
+            saveData(); updateStatsUI();
+        }
+
+        function updateStatsUI() {
+            document.getElementById('streakVal').textContent = state.tracker.streak || 0;
+            document.getElementById('urgeVal').textContent = state.tracker.urges.length || 0;
+        }
+
+        // --- IMPORT/EXPORT ---
+        function exportData() {
+            const blob = new Blob([JSON.stringify(state, null, 2)], {type: "application/json"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `internet-diet-${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+        }
+
+        function importData(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                try {
+                    state = JSON.parse(e.target.result);
+                    // Ensure deep merge of settings if old version
+                    if(!state.settings) state.settings = { theme: 'light', font: 'sans' };
+                    if(!state.tracker) state.tracker = { streak: 0, urges: [] };
+                    
+                    saveData(); init(); alert("Plan Loaded!");
+                } catch(err) { alert("Invalid File"); }
+            };
+            reader.readAsText(file);
+        }
+
+        function wipeData() {
+            if(confirm("Are you sure? This will delete all rules and history.")) {
+                localStorage.removeItem(KEY);
+                location.reload();
+            }
+        }
+
+        // --- UTILS ---
+        function escapeHtml(text) {
+            return text ? text.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]) : '';
+        }
+
+        window.addEventListener('DOMContentLoaded', init);
+
+    </script>
+</body>
+</html>
